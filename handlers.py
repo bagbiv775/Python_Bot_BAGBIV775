@@ -15,10 +15,13 @@ main_router = Router()
 
 @main_router.message(Command('start', 'random', 'gpt', 'talk', 'quiz'))
 async def command_handler(message: Message, command: CommandObject):
+    keyboard = None
+    if command.command == 'start':
+        keyboard = keyboard_main_menu()
     await message.answer_photo(
         photo=FSInputFile(Path.IMAGES.value.format(file=command.command)),
         caption=FileManager.read_txt(Path.MESSAGES, command.command),
-        reply_markup=keyboard_main_menu(),
+        reply_markup=keyboard,
     )
 
 
