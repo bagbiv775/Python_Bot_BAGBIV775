@@ -16,7 +16,6 @@ class GPTService:
         return cls._instance
 
     def __init__(self, model: GPTModel = GPTModel.GPT_4_MINI):
-    # def __init__(self, model: GPTModel = GPTModel.GPT_3_TURBO):
         self._gpt_token = config.OPENAI_API_KEY
         self._proxy = config.PROXY
         self._client = self._create_client()
@@ -43,7 +42,6 @@ class GPTService:
                 chat_id=config.ADMIN_ID,
                 text=str(e),
             )
-
 
     # ПЕРЕВОД ГОЛОСА В ТЕКСТ
     # async def transcript_voice(self, file, bot: Bot):

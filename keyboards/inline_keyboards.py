@@ -1,12 +1,11 @@
+import os
 from collections import namedtuple
 
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from .callback_data import CallbackMenu, CallbackTalk, CallbackQUIZ
-
-import os
-from utils.enum_path import Path
 from utils import FileManager
+from utils.enum_path import Path
+from .callback_data import CallbackMenu, CallbackTalk, CallbackQUIZ, CallbackTranslator
 
 Button = namedtuple('Button', ['text', 'callback'])
 
@@ -18,13 +17,14 @@ def ikb_main_menu():
         Button('Спросить GPT', 'gpt'),
         Button('Разговор со звездой', 'talk'),
         Button('КВИЗ!', 'quiz'),
+        Button('Переводчик', 'translator'),
     ]
     for button in buttons:
         keyboard.button(
             text=button.text,
             callback_data=CallbackMenu(button=button.callback),
         )
-    keyboard.adjust(2, 2)
+    keyboard.adjust(2, 1, 2)
     return keyboard.as_markup()
 
 
@@ -132,6 +132,48 @@ def ikb_quiz_navigation():
     )
     keyboard.button(
         text='Закончить!',
+        callback_data=CallbackMenu(button='start'),
+    )
+    return keyboard.as_markup()
+
+
+def ikb_translator_menu():
+    keyboard = InlineKeyboardBuilder()
+    languages = [file.rsplit('.', 1)[0] for file in os.listdir(Path.IMAGES_DIR.value) if file.startswith('translator_')]
+    for language in languages:
+        text_button = FileManager.read_txt(Path.PROMPTS, language).split('.', 1)[0].split(' на ')[-1]
+        keyboard.button(
+            text=text_button,
+            callback_data=CallbackTranslator(
+                button='translator',
+                language=language,
+            )
+        )
+    keyboard.button(
+        text='В главное меню',
+        callback_data=CallbackMenu(button='start'),
+    )
+    keyboard.adjust(2, 2)
+    return keyboard.as_markup()
+
+
+def ikb_translator_navigation():
+    keyboard = InlineKeyboardBuilder()
+    keyboard.button(
+        text='Сменить язык!',
+        callback_data=CallbackMenu(button='translator'),
+    )
+    keyboard.button(
+        text='Закончить!',
+        callback_data=CallbackMenu(button='start'),
+    )
+    return keyboard.as_markup()
+
+
+def ikb_back_to_main_menu():
+    keyboard = InlineKeyboardBuilder()
+    keyboard.button(
+        text='В главное меню',
         callback_data=CallbackMenu(button='start'),
     )
     return keyboard.as_markup()

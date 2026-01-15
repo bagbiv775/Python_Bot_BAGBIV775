@@ -1,19 +1,15 @@
-from aiogram import Router, Bot, F
-from aiogram.filters import Command, CommandObject
+from aiogram import Router, Bot
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, InputMediaPhoto
 from aiogram.types.input_file import FSInputFile
-from aiogram.enums.chat_action import ChatAction
 
-from .fsm import GPTRequest, CelebrityTalk, QUIZ
-from aiogram.fsm.context import FSMContext
-from keyboards import ikb_main_menu, ikb_random, ikb_gpt_menu, ikb_talk_back, ikb_quiz_navigation
-import config
+from ai_open import chat_gpt
+from ai_open.enums import GPTRole
+from ai_open.messages import GPTMessage
+from keyboards import ikb_gpt_menu, ikb_talk_back, ikb_quiz_navigation, ikb_translator_navigation
 from utils import FileManager
 from utils.enum_path import Path
-from ai_open import chat_gpt
-from ai_open.messages import GPTMessage
-from keyboards.callback_data import CallbackMenu
-from ai_open.enums import GPTRole
+from .fsm import GPTRequest, CelebrityTalk, QUIZ, Translator
 
 fsm_router = Router()
 
@@ -80,4 +76,42 @@ async def user_answer(message: Message, state: FSMContext, bot: Bot):
         chat_id=message.from_user.id,
         message_id=message_id,
         reply_markup=ikb_quiz_navigation(),
+    )
+
+
+@fsm_router.message(Translator.wait_for_text)
+async def translate_text(message: Message, state: FSMContext, bot: Bot):
+    data = await state.get_data()
+    language = data['language']
+    message_id = data['message_id']
+
+    await bot.delete_message(
+        chat_id=message.from_user.id,
+        message_id=message.message_id,
+    )
+
+    await bot.edit_message_media(
+        media=InputMediaPhoto(
+            # media=FSInputFile(Path.IMAGES.value.format(file='translator')),
+            media=FSInputFile(Path.IMAGES.value.format(file=language)),
+            caption='Пожалуйста, подождите.\nПеревожу вашу фразу...',
+        ),
+        chat_id=message.from_user.id,
+        message_id=message_id,
+    )
+
+    msg_list = GPTMessage('translator')
+    text_prompt = FileManager.read_txt(Path.PROMPTS, language) + '\n' + message.text
+    msg_list.update(GPTRole.USER, text_prompt)
+
+    response = await chat_gpt.request(msg_list, bot)
+
+    await bot.edit_message_media(
+        media=InputMediaPhoto(
+            media=FSInputFile(Path.IMAGES.value.format(file=language)),
+            caption=response,
+        ),
+        chat_id=message.from_user.id,
+        message_id=message_id,
+        reply_markup=ikb_translator_navigation(),
     )

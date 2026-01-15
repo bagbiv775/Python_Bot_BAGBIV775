@@ -1,25 +1,22 @@
 from aiogram import Router, Bot, F
-from aiogram.filters import Command, CommandObject
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InputMediaPhoto
 from aiogram.types.input_file import FSInputFile
-from aiogram.enums.chat_action import ChatAction
 
-from .fsm import GPTRequest, CelebrityTalk, QUIZ
-from aiogram.fsm.context import FSMContext
-from keyboards import ikb_main_menu, ikb_random, ikb_cancel_gpt, ikb_talk_menu, ikb_talk_back, ikb_quiz_menu
-import config
+from ai_open import chat_gpt
+from ai_open.enums import GPTRole
+from ai_open.messages import GPTMessage
+from keyboards import ikb_main_menu, ikb_random, ikb_cancel_gpt, ikb_talk_menu, ikb_talk_back
+from keyboards import ikb_quiz_menu, ikb_translator_menu, ikb_translator_navigation
+from keyboards.callback_data import CallbackMenu, CallbackTalk, CallbackQUIZ, CallbackTranslator
 from utils import FileManager
 from utils.enum_path import Path
-from ai_open import chat_gpt
-from ai_open.messages import GPTMessage
-from ai_open.enums import GPTRole
-from keyboards.callback_data import CallbackMenu, CallbackTalk, CallbackQUIZ
+from .fsm import GPTRequest, CelebrityTalk, QUIZ, Translator
 
 inline_router = Router()
 
 
 @inline_router.callback_query(CallbackMenu.filter(F.button == 'start'))
-@inline_router.callback_query(CallbackMenu.filter(F.button == 'main'))
 async def main_menu(callback: CallbackQuery, callback_data: CallbackMenu, state: FSMContext, bot: Bot):
     await state.clear()
     await bot.edit_message_media(
@@ -42,10 +39,6 @@ async def random_handler(callback: CallbackQuery, callback_data: CallbackMenu, b
         ),
         chat_id=callback.from_user.id,
         message_id=callback.message.message_id,
-    )
-    await bot.send_chat_action(
-        chat_id=callback.from_user.id,
-        action=ChatAction.TYPING,
     )
     response = await chat_gpt.request(GPTMessage('random'), bot)
     await bot.edit_message_media(
@@ -141,4 +134,40 @@ async def select_subject(callback: CallbackQuery, callback_data: CallbackQUIZ, s
         chat_id=callback.from_user.id,
         message_id=callback.message.message_id,
         reply_markup=ikb_talk_back(),
+    )
+
+
+@inline_router.callback_query(CallbackMenu.filter(F.button == 'translator'))
+async def translator_menu(callback: CallbackQuery, callback_data: CallbackMenu, state: FSMContext, bot: Bot):
+    await state.clear()
+    # await state.set_state(CallbackTranslator.language)
+    await state.set_state(Translator.language)
+
+    await bot.edit_message_media(
+        media=InputMediaPhoto(
+            media=FSInputFile(Path.IMAGES.value.format(file=callback_data.button)),
+            caption=FileManager.read_txt(Path.MESSAGES, callback_data.button),
+        ),
+        chat_id=callback.from_user.id,
+        message_id=callback.message.message_id,
+        reply_markup=ikb_translator_menu(),
+    )
+
+
+@inline_router.callback_query(CallbackTranslator.filter())
+async def text_for_translate(callback: CallbackQuery, callback_data: CallbackTranslator, state: FSMContext, bot: Bot):
+    await state.set_state(Translator.wait_for_text)
+    await state.update_data(
+        language=callback_data.language,
+        message_id=callback.message.message_id,
+    )
+
+    await bot.edit_message_media(
+        media=InputMediaPhoto(
+            media=FSInputFile(Path.IMAGES.value.format(file=callback_data.language)),
+            caption = FileManager.read_txt(Path.MESSAGES, callback_data.language),
+        ),
+        chat_id=callback.from_user.id,
+        message_id=callback.message.message_id,
+        reply_markup=ikb_translator_navigation(),
     )

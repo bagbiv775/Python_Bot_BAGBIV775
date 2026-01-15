@@ -1,8 +1,8 @@
 from aiogram import Router
 
 from .fsm_handlers import fsm_router
-from .inline_handlers import inline_router
 from .handlers import command_router
+from .inline_handlers import inline_router
 
 main_router = Router()
 

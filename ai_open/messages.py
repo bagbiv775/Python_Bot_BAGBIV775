@@ -1,8 +1,8 @@
 import json
 
 from utils import FileManager
-from .enums import GPTRole
 from utils.enum_path import Path
+from .enums import GPTRole
 
 
 class GPTMessage:

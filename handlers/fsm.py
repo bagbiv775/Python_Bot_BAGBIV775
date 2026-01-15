@@ -11,3 +11,8 @@ class CelebrityTalk(StatesGroup):
 
 class QUIZ(StatesGroup):
     game = State()
+
+
+class Translator(StatesGroup):
+    language = State()
+    wait_for_text = State()
